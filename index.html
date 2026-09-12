@@ -297,7 +297,42 @@
       html { scroll-behavior: auto; }
       * { transition: none !important; }
     }
-  </style>
+  
+    .viewport video { width:100%;height:100%;object-fit:contain;background:#08101d; }
+    .feed-message { pointer-events:none; }
+    .live-camera[data-state="idle"] .feed-message { display:flex; }
+    .unavailable { padding:20px;background:var(--deep);font-size:.85rem;color:var(--muted); }
+    .unavailable .badge { color:var(--amber); }
+    .small-button,.advisor button { display:inline-block;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:#193653;color:var(--text);cursor:pointer;text-decoration:none;font:inherit; }
+    .small-button { margin-top:12px; }
+    .advisor { padding:24px;border:1px solid #93c5fd66;border-radius:18px;background:linear-gradient(110deg,#162d47,#111c2e); }
+    .advisor h2 { margin-bottom:6px; }
+    .advisor p { color:var(--muted); }
+    .advisor label { display:block;font-size:.85rem;margin:12px 0 5px; }
+    .advisor select,.advisor input { font:inherit;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;width:100%;min-height:44px; }
+    .advisor input[type="checkbox"] { width:auto;min-height:auto; }
+    .advisor details { border-top:1px solid var(--line);padding-top:16px;margin-top:18px; }
+    .advisor summary { cursor:pointer;padding:8px 0;min-height:44px; }
+    .decision { padding:18px;margin-top:18px;border:1px solid #6ee7b755;border-radius:12px;background:#6ee7b708; }
+    .decision strong { display:block;font-size:1.12rem;color:var(--green); }
+    .advisor .decision p { margin-top:6px; }
+    .advisor .fields { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px; }
+    .route-row { display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line); }
+    .route-row label { margin:0;flex:1; }
+    .route-row input { max-width:100px; }
+    .route-row a { font-size:.8rem; }
+    .traffic-result { padding:16px;margin-top:12px;background:var(--deep);border:1px solid var(--line);border-radius:12px; }
+    .traffic-result:first-child { border-color:var(--green); }
+    .traffic-result h3 { color:var(--green); }
+    .traffic-result ol { padding-left:20px; }
+    .route-map { width:100%;height:220px;background:#0b1120;border:1px solid var(--line);border-radius:8px;margin-top:12px; }
+    .advisor .actions { display:flex;gap:10px;flex-wrap:wrap;margin-top:12px; }
+    button:disabled { opacity:.5;cursor:wait; }
+    .hero { padding-block:8px 16px; }
+    h1 { font-size:clamp(1.65rem,3vw,2.4rem); }
+    @media(max-width:680px) { .advisor { padding:16px; }.route-row { flex-wrap:wrap; }.route-row label { flex-basis:65%; } }
+
+</style>
 </head>
 <body>
   <a class="skip" href="#launchpad">Skip to local cameras</a>
@@ -313,9 +348,9 @@
       </div>
 
       <div class="statusbar">
-        <span class="refresh-label">Feeds auto-refresh every 30 seconds</span>
+        <span class="refresh-label">Live video · unavailable feeds retry every 30 seconds</span>
         <span id="refresh-status" role="status" aria-live="polite" aria-atomic="true">
-          Preparing camera placeholders…
+          Preparing live video…
         </span>
         <span id="network">Checking connection…</span>
       </div>
@@ -347,6 +382,42 @@
     </noscript>
 
     <main>
+<section class="advisor map-panel" id="map-view" aria-labelledby="map-title">
+  <div class="section-heading"><span class="phase-number" aria-hidden="true">⌖</span><div><h2 id="map-title">Normal map view</h2><p>See the full commute area first, then open a route in Google Maps for turn-by-turn traffic guidance.</p></div></div>
+  <iframe id="commute-map" class="route-map" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=-75.30%2C39.72%2C-74.30%2C40.48&amp;layer=mapnik&amp;marker=39.827%2C-75.096" title="Normal OpenStreetMap view of the Deptford to Monroe commute area"></iframe>
+  <p class="note"><a href="https://www.openstreetmap.org/?mlat=39.827&amp;mlon=-75.096#map=10/40.08/-74.80" target="_blank" rel="noopener noreferrer">Open the larger normal map ↗</a> · <a href="https://www.google.com/maps/dir/?api=1&amp;origin=4+Tulip+Ct%2C+Deptford%2C+NJ+08096&amp;destination=251+Docks+Corner+Road%2C+Monroe%2C+NJ+08831&amp;travelmode=driving" target="_blank" rel="noopener noreferrer">Open the full commute in Google Maps ↗</a></p>
+</section>
+
+<section class="advisor" id="advisor" aria-labelledby="advisor-title">
+  <p class="eyebrow">Before leaving / Decisions with evidence</p>
+  <h2 id="advisor-title">Which route should I take?</h2>
+  <p>Start with the local merge. Unknown conditions never count as clear roads.</p>
+  <div class="fields">
+    <div><label for="merge-condition">RT 42 shared merge at Leaf / Creek</label><select id="merge-condition"><option value="unknown">Not checked</option><option value="clear">Moving freely</option><option value="slow">Slow, but moving</option><option value="blocked">Gridlocked / closed</option></select></div>
+    <div><label for="local-condition">Evesham + connecting roads to Woodcrest</label><select id="local-condition"><option value="unknown">Not checked</option><option value="clear">Clear / accessible</option><option value="slow">Slow</option><option value="blocked">Blocked / closed</option></select></div>
+    <div><label for="highway-condition">I-295 North before Burlington</label><select id="highway-condition"><option value="unknown">Not checked</option><option value="clear">Moving freely</option><option value="slow">Slow before Exit 5 approach</option><option value="blocked">Blocked before Exit 5 approach</option></select></div>
+  </div>
+  <div class="decision" role="status" aria-live="polite"><strong id="decision-title">Check the local merge before choosing.</strong><p id="decision-reason">No traffic observations or route times have been entered.</p></div>
+  <p class="note" id="observation-age">These are your observations, not automatic camera analysis. They expire after 5 minutes.</p>
+  <details><summary>Compare current Google Maps times · no API needed</summary>
+    <p>Open each candidate and enter its current full-trip travel time in minutes. All comparisons start at home and finish at the office. Blank times are excluded.</p>
+    <div id="manual-routes"></div>
+    <label for="toll-preference">Route preference</label><select id="toll-preference"><option value="0">Fastest of the routes entered</option><option value="5">Prefer Exit 5 when within 5 minutes of fastest</option></select>
+    <div class="actions"><button id="clear-times" type="button">Clear observations &amp; times</button></div>
+    <p class="note">An Exit 5 preference is a time tradeoff, not a calculated toll price. Check route differences in Maps.</p>
+  </details>
+  <details id="traffic-setup"><summary>Connect automatic traffic-based recommendations</summary>
+    <p>Requires your own TomTom key with Search and Routing access. The key stays in this page’s memory and is never saved to GitHub. Your origin and destination are sent to TomTom only when you connect.</p>
+    <p class="note"><a href="https://developer.tomtom.com/" target="_blank" rel="noopener noreferrer">Get a TomTom developer key ↗</a>. Check your account’s allowance; no subscription is purchased here. Restrict the key to this website and the required APIs in your provider account.</p>
+    <label for="traffic-key">TomTom API key · this session only</label><input id="traffic-key" type="password" autocomplete="off" spellcheck="false" placeholder="Enter privately here, not in chat">
+    <label><input id="auto-traffic" type="checkbox" checked> Refresh route estimates every 2 minutes while this page is visible</label>
+    <div class="actions"><button id="connect-traffic" type="button">Send commute to TomTom &amp; compare</button><button id="refresh-traffic" type="button" disabled>Refresh traffic routes</button><button id="disconnect-traffic" type="button" disabled>Disconnect &amp; forget key</button></div>
+    <p class="note">Automatic mode ranks TomTom’s returned alternatives by traffic-adjusted travel time via the Exit 8A vicinity. It may not return every local/Turnpike combination. The manual condition and Exit 5 preference controls above do not modify these provider routes.</p>
+  </details>
+  <p id="traffic-status" class="note" role="status" aria-live="polite">Automatic traffic comparison is not connected.</p>
+  <div id="traffic-results"></div>
+</section>
+
       <section id="launchpad" aria-labelledby="launch-title">
         <div class="section-heading">
           <span class="phase-number" aria-hidden="true">01</span>
@@ -370,34 +441,8 @@
               <h3>RT 42 North corridor</h3>
               <p>Check both merge views before committing. Standard, but heavily congested.</p>
             </div>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=RT+42+NB+%7C+Leaf+Ave"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=RT+42+NB+%7C+Leaf+Ave"
-                  alt="Placeholder for RT 42 northbound at Leaf Avenue">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>Cam 1 · RT 42 NB @ Leaf Ave (Bellmawr)</h4>
-                <p class="camera-meta">MM 13.9 · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=RT+42+NB+%7C+Creek+Rd"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=RT+42+NB+%7C+Creek+Rd"
-                  alt="Placeholder for RT 42 northbound at Creek Road">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>Cam 2 · RT 42 NB @ Creek Rd (Missing Moves Merge)</h4>
-                <p class="camera-meta">MM 13.4 · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
+            <figure class="camera local-camera"><div class="unavailable"><span class="badge">OFFICIAL VIEWER</span><p>511NJ showed a camera error during setup.</p><a class="small-button" href="https://511nj.org/camera" target="_blank" rel="noopener noreferrer">Open 511NJ cameras ↗</a></div><figcaption><h4>RT 42 @ Leaf Avenue</h4><p class="camera-meta">Select NJ-42 Tour · NJ-42 @ Leaf Avenue</p></figcaption></figure>
+            <figure class="camera local-camera"><div class="unavailable"><span class="badge">OFFICIAL VIEWER</span><p>Open the official viewer to check availability.</p><a class="small-button" href="https://511nj.org/camera" target="_blank" rel="noopener noreferrer">Open 511NJ cameras ↗</a></div><figcaption><h4>RT 42 @ Creek Road</h4><p class="camera-meta">Select NJ-42 Tour · NJ-42 @ Creek Road</p></figcaption></figure>
           </article>
 
           <article class="option blue">
@@ -406,20 +451,7 @@
               <h3>Route 55 North approach</h3>
               <p>Compare the approach queue with RT 42 before leaving Deptford.</p>
             </div>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=Route+55+NB+%7C+RT+42+Merge"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=Route+55+NB+%7C+RT+42+Merge"
-                  alt="Placeholder for Route 55 northbound at the RT 42 merge">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>Cam 3 · Route 55 NB @ RT 42 Merge / Deptford</h4>
-                <p class="camera-meta">NORTHBOUND APPROACH · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
+            <figure class="camera local-camera"><div class="unavailable"><span class="badge">OFFICIAL VIEWER</span><p>Open the official viewer to check availability.</p><a class="small-button" href="https://511nj.org/camera" target="_blank" rel="noopener noreferrer">Open 511NJ cameras ↗</a></div><figcaption><h4>RT 42 @ Route 55 merge</h4><p class="camera-meta">Select NJ-42 Tour · NJ-42 @ Route 55 Camera #1</p></figcaption></figure>
             <p class="option-note">Route 55 joins RT 42. It may improve local access, but it does not independently bypass congestion downstream on RT 42.</p>
           </article>
 
@@ -429,56 +461,17 @@
               <h3>Evesham Road local route</h3>
               <p>Across Magnolia / Somerdale, then connecting local roads toward Woodcrest and I-295 North.</p>
             </div>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=Evesham+Rd+%7C+Route+168"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=Evesham+Rd+%7C+Route+168"
-                  alt="Placeholder for Evesham Road at Route 168">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>Cam 4 · Evesham Road @ Route 168</h4>
-                <p class="camera-meta">BLACK HORSE PIKE · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=Evesham+Rd+%7C+Route+30"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=Evesham+Rd+%7C+Route+30"
-                  alt="Placeholder for Evesham Road at Route 30">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>Cam 5 · Evesham Road @ Route 30</h4>
-                <p class="camera-meta">WHITE HORSE PIKE · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=I-295+NB+%7C+Exit+31+Woodcrest"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=I-295+NB+%7C+Exit+31+Woodcrest"
-                  alt="Placeholder for I-295 northbound at Exit 31 Woodcrest Station ramps">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>Cam 6 · I-295 NB @ Exit 31 / Woodcrest Station Ramps</h4>
-                <p class="camera-meta">BYPASS REJOIN · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
+            <figure class="camera local-camera"><div class="unavailable"><span class="badge">OFFICIAL VIEWER</span><p>An embeddable feed at this intersection has not been verified.</p><a class="small-button" href="https://511nj.org/camera" target="_blank" rel="noopener noreferrer">Open 511NJ cameras ↗</a></div><figcaption><h4>Evesham Road @ Route 168</h4><p class="camera-meta">Select NJ-168 Tour</p></figcaption></figure>
+            <figure class="camera local-camera"><div class="unavailable"><span class="badge">OFFICIAL VIEWER</span><p>An embeddable feed at this intersection has not been verified.</p><a class="small-button" href="https://511nj.org/camera" target="_blank" rel="noopener noreferrer">Open 511NJ cameras ↗</a></div><figcaption><h4>Evesham Road @ Route 30</h4><p class="camera-meta">Select US-30 Tour</p></figcaption></figure>
+            <figure class="camera local-camera"><div class="unavailable"><span class="badge">OFFICIAL VIEWER</span><p>An embeddable feed at these ramps has not been verified.</p><a class="small-button" href="https://511nj.org/camera" target="_blank" rel="noopener noreferrer">Open 511NJ cameras ↗</a></div><figcaption><h4>I-295 @ Exit 31 / Woodcrest</h4><p class="camera-meta">Select I-295 Tour</p></figcaption></figure>
           </article>
         </div>
 
         <aside class="rules" aria-labelledby="rules-title">
           <h3 id="rules-title">LAUNCH RULES</h3>
           <ol>
-            <li>Check RT 42 NB at Leaf/Creek Rd. If clear, take RT 42 N or Route 55 straight to I-295 North.</li>
-            <li>If RT 42 NB is gridlocked at the merge, evaluate taking Route 55 or immediately cutting across to Evesham Road. Follow Evesham Road east all the way down to I-295 North Exit 31 (Woodcrest Station) to completely skip the Direct Connect bottleneck.</li>
+            <li>Check RT 42 at Leaf/Creek Rd. If clear, compare RT 42 N with Route 55 joining RT 42, then continue to I-295 North.</li>
+            <li>If the shared RT 42 merge is gridlocked, Route 55 will not bypass it. Compare Evesham Road east and connecting local roads toward Woodcrest / I-295 North, or a local approach to Turnpike Exit 3. Confirm the connecting turns in Maps.</li>
           </ol>
           <p class="clarification"><strong>Route clarification:</strong> Route 55 reaches I-295 through RT 42 and shares its downstream bottleneck. The Evesham bypass requires connecting local roads to Woodcrest; Evesham Road does not directly meet Exit 31. Confirm those turns in Maps.</p>
         </aside>
@@ -514,7 +507,7 @@
             <span>Woodcrest Station → preferred Exit 5 → Exit 8A. This link begins at Woodcrest. Opens a new tab ↗</span>
           </a>
         </div>
-        <p class="note">Maps calculates travel times and the proposed path. This dashboard does not automatically detect congestion, calculate tolls, or select a route.</p>
+        <p class="note">Google Maps recalculates routes when opened. Use the departure panel for a transparent recommendation; camera images are not automatically analyzed.</p>
       </section>
 
       <section id="turnpike" aria-labelledby="turnpike-title">
@@ -532,21 +525,7 @@
               <h3>Interchange 5 · Burlington</h3>
               <p>Saves money on tolls, exits directly near the office at 8A.</p>
             </div>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <!-- Configure a verified NJTA static image URL, not https://njta.gov. -->
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=NJTA+%7C+Interchange+5"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=NJTA+%7C+Interchange+5"
-                  alt="Placeholder for NJ Turnpike Interchange 5 entry camera">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>NJ Turnpike · Interchange 5 entry</h4>
-                <p class="camera-meta">BURLINGTON / WESTAMPTON · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
+            <figure class="camera live-camera" data-state="idle"><div class="viewport"><span class="feed-kind">LIVE VIDEO</span><video controls muted playsinline preload="none" data-stream="https://wink.njta.com/202/public/hls/WF05-24AE-4D34-AD91-40C8_nj.m3u8" aria-label="NJTA camera MM 44.2: North of Interchange 5 · CR 541"></video><span class="feed-message">Video loads when visible.</span></div><figcaption><h4>NJ Turnpike · MM 44.2 · North of Interchange 5 · CR 541</h4><p class="camera-meta feed-status">Ready when visible</p><p class="camera-note">Camera may rotate; verify the direction in the image.</p><a href="https://www.njta.gov/travel-resources/camera-list/" target="_blank" rel="noopener noreferrer">Official NJTA camera viewer ↗</a></figcaption></figure>
             <p class="option-note">Shorter Turnpike distance than entering at 4 or 3. Actual tolls depend on vehicle and payment method.</p>
           </article>
           <article class="option blue">
@@ -555,21 +534,7 @@
               <h3>Interchange 4 · Mount Laurel / RT 73</h3>
               <p>Take if I-295 is slowing down before Burlington.</p>
             </div>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <!-- Mock filename hint: tpk_34_5.jpg. Verify the actual endpoint/location. -->
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=Exit+4+%7C+tpk_34_5.jpg"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=Exit+4+%7C+tpk_34_5.jpg"
-                  alt="Placeholder for NJ Turnpike Interchange 4 entry camera">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>NJ Turnpike · Interchange 4 entry</h4>
-                <p class="camera-meta">RT 73 CONNECTION · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
+            <figure class="camera live-camera" data-state="idle"><div class="viewport"><span class="feed-kind">LIVE VIDEO</span><video controls muted playsinline preload="none" data-stream="https://wink.njta.com/202/public/hls/WF05-24AE-4D34-A235-7131_nj.m3u8" aria-label="NJTA camera MM 34.3: South of Interchange 4 plaza · NJ 73"></video><span class="feed-message">Video loads when visible.</span></div><figcaption><h4>NJ Turnpike · MM 34.3 · South of Interchange 4 plaza · NJ 73</h4><p class="camera-meta feed-status">Ready when visible</p><p class="camera-note">Camera may rotate; verify the direction in the image.</p><a href="https://www.njta.gov/travel-resources/camera-list/" target="_blank" rel="noopener noreferrer">Official NJTA camera viewer ↗</a></figcaption></figure>
           </article>
           <article class="option purple">
             <div class="option-header">
@@ -577,21 +542,7 @@
               <h3>Interchange 3 · Runnemede / RT 168</h3>
               <p>Take if early local roads are broken, forcing a fast jump onto the Turnpike.</p>
             </div>
-            <figure class="camera">
-              <div class="viewport">
-                <span class="feed-kind">Placeholder</span>
-                <!-- Mock filename hint: tpk_28_0.jpg. Not a verified Exit 3 camera. -->
-                <img width="640" height="360"
-                  src="https://placehold.co/640x360/111c2e/b5c3d7?text=Exit+3+%7C+tpk_28_0.jpg"
-                  data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=Exit+3+%7C+tpk_28_0.jpg"
-                  alt="Placeholder for NJ Turnpike Interchange 3 entry camera">
-                <span class="feed-message"></span>
-              </div>
-              <figcaption>
-                <h4>NJ Turnpike · Interchange 3 entry</h4>
-                <p class="camera-meta">RT 168 CONNECTION · <span class="feed-status">Not connected</span></p>
-              </figcaption>
-            </figure>
+            <figure class="camera live-camera" data-state="idle"><div class="viewport"><span class="feed-kind">LIVE VIDEO</span><video controls muted playsinline preload="none" data-stream="https://wink.njta.com/202/public/hls/WF05-24AE-4D34-9D18-92A5_nj.m3u8" aria-label="NJTA camera MM 26.1: Interchange 3 · RT 168"></video><span class="feed-message">Video loads when visible.</span></div><figcaption><h4>NJ Turnpike · MM 26.1 · Interchange 3 · RT 168</h4><p class="camera-meta feed-status">Ready when visible</p><p class="camera-note">Source is currently unavailable; retries automatically. Camera may rotate; verify the direction in the image.</p><a href="https://www.njta.gov/travel-resources/camera-list/" target="_blank" rel="noopener noreferrer">Official NJTA camera viewer ↗</a></figcaption></figure>
             <p class="option-note">Make this decision near departure. Exit 3 is south of the Woodcrest rejoin; it is not a later northbound fallback from Exit 31.</p>
           </article>
         </div>
@@ -606,43 +557,16 @@
           </div>
         </div>
         <div class="grid final-grid">
-          <figure class="camera">
-            <div class="viewport">
-              <span class="feed-kind">Placeholder</span>
-              <img width="640" height="360"
-                src="https://placehold.co/640x360/111c2e/b5c3d7?text=NJ+Turnpike+NB+%7C+MM+68.0"
-                data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=NJ+Turnpike+NB+%7C+MM+68.0"
-                alt="Placeholder for NJ Turnpike northbound at milepost 68.0">
-              <span class="feed-message"></span>
-            </div>
-            <figcaption>
-              <h4>Cam 1 · NJ Turnpike NB @ MM 68.0</h4>
-              <p class="camera-meta">SOUTH OF INTERCHANGE 8A · <span class="feed-status">Not connected</span></p>
-            </figcaption>
-          </figure>
-          <figure class="camera">
-            <div class="viewport">
-              <span class="feed-kind">Placeholder</span>
-              <img width="640" height="360"
-                src="https://placehold.co/640x360/111c2e/b5c3d7?text=NJ+Turnpike+NB+%7C+MM+71.0"
-                data-src="https://placehold.co/640x360/111c2e/b5c3d7?text=NJ+Turnpike+NB+%7C+MM+71.0"
-                alt="Placeholder for NJ Turnpike northbound at milepost 71.0, approaching Exit 8A">
-              <span class="feed-message"></span>
-            </div>
-            <figcaption>
-              <h4>Cam 2 · NJ Turnpike NB @ MM 71.0</h4>
-              <p class="camera-meta">INTERCHANGE 8A APPROACH · <span class="feed-status">Not connected</span></p>
-              <p class="camera-note">Requested toll-plaza ramp slot: NJTA identifies the Interchange 8A camera at MM 73.7. Update this label and image together when connecting that feed.</p>
-            </figcaption>
-          </figure>
+          <figure class="camera live-camera" data-state="idle"><div class="viewport"><span class="feed-kind">LIVE VIDEO</span><video controls muted playsinline preload="none" data-stream="https://wink.njta.com/202/public/hls/WF05-24AE-4D34-D261-DF50_nj.m3u8" aria-label="NJTA camera MM 67.7: North of Interchange 8 · NJ 33"></video><span class="feed-message">Video loads when visible.</span></div><figcaption><h4>NJ Turnpike · MM 67.7 · North of Interchange 8 · NJ 33</h4><p class="camera-meta feed-status">Ready when visible</p><p class="camera-note">Camera may rotate; verify the direction in the image.</p><a href="https://www.njta.gov/travel-resources/camera-list/" target="_blank" rel="noopener noreferrer">Official NJTA camera viewer ↗</a></figcaption></figure>
+          <figure class="camera live-camera" data-state="idle"><div class="viewport"><span class="feed-kind">LIVE VIDEO</span><video controls muted playsinline preload="none" data-stream="https://wink.njta.com/202/public/hls/WF05-24AE-4D34-DE9A-2431_nj.m3u8" aria-label="NJTA camera MM 73.7: Interchange 8A · NJ 32"></video><span class="feed-message">Video loads when visible.</span></div><figcaption><h4>NJ Turnpike · MM 73.7 · Interchange 8A · NJ 32</h4><p class="camera-meta feed-status">Ready when visible</p><p class="camera-note">Camera may rotate; verify the direction in the image.</p><a href="https://www.njta.gov/travel-resources/camera-list/" target="_blank" rel="noopener noreferrer">Official NJTA camera viewer ↗</a></figcaption></figure>
         </div>
       </section>
     </main>
 
     <footer>
       <div>
-        <p>Camera slots are placeholders until connected.</p>
-        <p>Refresh times indicate image downloads, not the camera’s capture time.</p>
+        <p>Live video: NJTA. Local-camera availability: check 511NJ.</p>
+        <p>Use the timestamp shown inside each camera image to check freshness.</p>
       </div>
       <div>
         <a href="https://www.511nj.org/" target="_blank" rel="noopener noreferrer">511NJ ↗</a>
@@ -652,172 +576,268 @@
     </footer>
   </div>
 
+  <!-- HLS.js, Apache-2.0: https://github.com/video-dev/hls.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.light.min.js" integrity="sha384-6zVopFZ6MnadnshQ07Vs8phFH+j+4/Ug+8qEZUIrwOiEv3+rW6ndNweevq1hUH93" crossorigin="anonymous"></script>
   <script>
-    (() => {
-      "use strict";
+(() => {
+  "use strict";
 
-      const REFRESH_MS = 30_000;
-      const TIMEOUT_MS = 20_000;
-      const button = document.getElementById("refresh");
-      const summary = document.getElementById("refresh-status");
-      const network = document.getElementById("network");
-      const clock = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/New_York",
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit"
-      });
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const REFRESH_MS = 30_000;
+  const TRAFFIC_REFRESH_MS = 120_000;
+  const sourceTimestamps = new Map();
+  const sessions = new Map();
+  let trafficKey = "";
+  let trafficTimer = null;
 
-      const cameras = Array.from(document.querySelectorAll("img[data-src]"))
-        .map(img => ({
-          img,
-          card: img.closest(".camera"),
-          timer: null,
-          state: "idle",
-          placeholder: true
-        }));
+  const routeDefinitions = [
+    {
+      id: "primary",
+      name: "Primary · RT 42 → I-295 → Turnpike Exit 5",
+      short: "Exit 5 / Burlington",
+      waypoint: "New Jersey Turnpike Interchange 5, Westampton, NJ",
+      maps: "https://www.google.com/maps/dir/?api=1&origin=4+Tulip+Ct%2C+Deptford%2C+NJ+08096&destination=251+Docks+Corner+Road%2C+Monroe%2C+NJ+08831&travelmode=driving&waypoints=NJ+Route+42+and+Creek+Road%2C+Bellmawr%2C+NJ%7CNew+Jersey+Turnpike+Interchange+5%2C+Westampton%2C+NJ"
+    },
+    {
+      id: "fallback",
+      name: "Fallback · I-295 → Turnpike Exit 4",
+      short: "Exit 4 / Mount Laurel",
+      waypoint: "New Jersey Turnpike Interchange 4, Mount Laurel, NJ",
+      maps: "https://www.google.com/maps/dir/?api=1&origin=4+Tulip+Ct%2C+Deptford%2C+NJ+08096&destination=251+Docks+Corner+Road%2C+Monroe%2C+NJ+08831&travelmode=driving&waypoints=New+Jersey+Turnpike+Interchange+4%2C+Mount+Laurel%2C+NJ"
+    },
+    {
+      id: "evesham",
+      name: "Escape · Evesham Road → Woodcrest → I-295",
+      short: "Woodcrest / Evesham",
+      waypoint: "Woodcrest PATCO Station, Cherry Hill, NJ",
+      maps: "https://www.google.com/maps/dir/?api=1&origin=4+Tulip+Ct%2C+Deptford%2C+NJ+08096&destination=251+Docks+Corner+Road%2C+Monroe%2C+NJ+08831&travelmode=driving&waypoints=Evesham+Road%2C+Somerdale%2C+NJ%7CWoodcrest+PATCO+Station%2C+Cherry+Hill%2C+NJ"
+    }
+  ];
 
-      let sequence = 0;
-      let lastTimestamp = 0;
-      let requestedAt = "";
+  function setText(selector, value) {
+    const element = $(selector);
+    if (element) element.textContent = value;
+  }
 
-      function updateNetwork() {
-        network.textContent = navigator.onLine
-          ? "Network available"
-          : "Offline · waiting for connection";
-      }
+  function formatMinutes(seconds) {
+    if (!Number.isFinite(seconds)) return "—";
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+  }
 
-      function updateSummary() {
-        const pending = cameras.filter(camera => camera.state === "loading").length;
-        const failed = cameras.filter(camera => camera.state === "error").length;
-        const configured = cameras.filter(camera => !camera.placeholder).length;
+  function status(message) {
+    setText("#traffic-status", message);
+  }
 
-        if (pending) {
-          summary.textContent =
-            `Refreshing ${pending}/${cameras.length} images · ${requestedAt} ET`;
-          return;
+  function setVideoStatus(video, message, state) {
+    const card = video.closest(".camera");
+    if (!card) return;
+    card.dataset.state = state;
+    const target = $(".feed-status", card);
+    if (target) target.textContent = message;
+    const messageNode = $(".feed-message", card);
+    if (messageNode) messageNode.textContent = state === "error" ? message : "Video loads when visible.";
+  }
+
+  function mountStream(video) {
+    if (!video.dataset.stream || sessions.has(video)) return;
+    const stream = video.dataset.stream;
+    const supportsNative = video.canPlayType("application/vnd.apple.mpegurl") || video.canPlayType("application/x-mpegURL");
+    setVideoStatus(video, "Connecting…", "loading");
+    if (supportsNative) {
+      video.src = stream;
+      video.addEventListener("loadedmetadata", () => setVideoStatus(video, "Live stream ready", "live"), { once: true });
+      video.addEventListener("error", () => setVideoStatus(video, "Unavailable · retries next refresh", "error"), { once: true });
+      sessions.set(video, { destroy: () => { video.removeAttribute("src"); video.load(); } });
+      return;
+    }
+    if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: true, backBufferLength: 30, maxBufferLength: 10 });
+      hls.loadSource(stream);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => setVideoStatus(video, "Live stream ready", "live"));
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          setVideoStatus(video, "Unavailable · official viewer may still work", "error");
+          hls.destroy();
         }
-
-        summary.textContent =
-          `${configured}/${cameras.length} feeds configured · ` +
-          (failed ? `${failed} unavailable · ` : "Images loaded · ") +
-          `${requestedAt} ET`;
-      }
-
-      function refreshAll() {
-        const run = ++sequence;
-        // UNIX milliseconds; monotonic even for repeated clicks in one millisecond.
-        lastTimestamp = Math.max(Date.now(), lastTimestamp + 1);
-        requestedAt = clock.format(new Date());
-        updateNetwork();
-
-        cameras.forEach((camera, index) => {
-          clearTimeout(camera.timer);
-
-          // Detach handlers from the previous request to prevent late events
-          // from marking a newer request successful.
-          camera.img.onload = null;
-          camera.img.onerror = null;
-
-          const previous = camera.img;
-          const img = previous.cloneNode(false);
-          img.removeAttribute("src");
-          img.removeAttribute("srcset");
-          img.hidden = true;
-          img.loading = "eager";
-          img.decoding = "async";
-
-          previous.replaceWith(img);
-          camera.img = img;
-          camera.state = "loading";
-          camera.card.dataset.state = "loading";
-          camera.card.setAttribute("aria-busy", "true");
-
-          const message = camera.card.querySelector(".feed-message");
-          const status = camera.card.querySelector(".feed-status");
-          const kind = camera.card.querySelector(".feed-kind");
-          message.textContent = "Requesting image…";
-          status.textContent = "Refreshing…";
-
-          let settled = false;
-          function finish(success) {
-            if (settled || run !== sequence || camera.img !== img) return;
-            settled = true;
-            clearTimeout(camera.timer);
-            img.onload = null;
-            img.onerror = null;
-
-            camera.state = success ? "loaded" : "error";
-            camera.card.dataset.state = camera.state;
-            camera.card.setAttribute("aria-busy", "false");
-            img.hidden = !success;
-
-            if (success) {
-              status.textContent =
-                `${camera.placeholder ? "Demo loaded" : "Image loaded"} ` +
-                `${clock.format(new Date())} ET`;
-              message.textContent = "";
-            } else {
-              status.textContent = "Unavailable · retries next refresh";
-              message.textContent = navigator.onLine
-                ? "Image unavailable. Check the source or try Manual Refresh."
-                : "Offline. Images will retry when your connection returns.";
-            }
-            updateSummary();
-          }
-
-          try {
-            const source = (img.dataset.src || "").trim();
-            if (!source) throw new Error("Missing image URL");
-
-            const url = new URL(source, document.baseURI);
-            if (!["https:", "http:"].includes(url.protocol)) {
-              throw new Error("A network image URL is required");
-            }
-            if (location.protocol === "https:" && url.protocol !== "https:") {
-              throw new Error("HTTPS pages require HTTPS images");
-            }
-
-            camera.placeholder = url.hostname === "placehold.co";
-            kind.textContent = camera.placeholder ? "Placeholder" : "Camera image";
-            if (!camera.placeholder) {
-              img.alt = img.alt.replace(/^Placeholder for /i, "Camera view: ");
-            }
-
-            // URLSearchParams preserves existing queries and avoids duplicate t keys.
-            // A unique value is assigned to every image in every refresh batch.
-            url.searchParams.set("t", `${lastTimestamp}-${index}`);
-
-            img.onload = () => finish(img.naturalWidth > 0);
-            img.onerror = () => finish(false);
-            camera.timer = setTimeout(() => finish(false), TIMEOUT_MS);
-            img.src = url.href;
-          } catch {
-            camera.placeholder = true;
-            kind.textContent = "Not configured";
-            finish(false);
-          }
-        });
-
-        updateSummary();
-      }
-
-      button.addEventListener("click", refreshAll);
-      window.addEventListener("online", refreshAll);
-      window.addEventListener("offline", updateNetwork);
-
-      // Browsers can throttle or suspend background tabs, especially on iOS.
-      // Refresh immediately when the page becomes visible again.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") refreshAll();
       });
-      window.addEventListener("pageshow", event => {
-        if (event.persisted) refreshAll();
-      });
+      sessions.set(video, { destroy: () => hls.destroy() });
+    } else {
+      setVideoStatus(video, "This browser cannot play HLS", "error");
+    }
+  }
 
-      refreshAll();
-      setInterval(refreshAll, REFRESH_MS);
-    })();
+  function refreshStreams() {
+    $$("video[data-stream]").forEach((video) => {
+      if (video.dataset.stream && sessions.has(video)) {
+        sessions.get(video).destroy();
+        sessions.delete(video);
+      }
+      const stream = video.dataset.stream;
+      if (!stream) return;
+      const separator = stream.includes("?") ? "&" : "?";
+      video.dataset.stream = stream.replace(/[?&]t=\d+$/, "") + `${separator}t=${Date.now()}`;
+      setVideoStatus(video, "Ready when visible", "idle");
+    });
+    if (document.visibilityState === "visible") {
+      $$("video[data-stream]").forEach(mountStream);
+    }
+  }
+
+  function refreshDecision() {
+    const merge = $("#merge-condition")?.value || "unknown";
+    const local = $("#local-condition")?.value || "unknown";
+    const highway = $("#highway-condition")?.value || "unknown";
+    let title = "Check the local merge before choosing.";
+    let reason = "No traffic observations or route times have been entered.";
+    if (merge === "blocked" && local === "clear") {
+      title = "Take the Evesham / Woodcrest escape.";
+      reason = "The shared RT 42 approach is blocked and the local bypass is clear. Rejoin I-295 at Woodcrest, then reassess Exit 5.";
+    } else if (merge === "blocked" && local === "blocked") {
+      title = "Avoid the local launchpad; check Turnpike Exit 3.";
+      reason = "Both local branches are reported blocked. Use the earliest safe Turnpike entry and verify closures in Maps.";
+    } else if (merge === "blocked") {
+      title = "Do not commit to RT 42 or Route 55 yet.";
+      reason = "The shared merge is blocked. Check Evesham and the Exit 3 contingency before departing.";
+    } else if (merge === "clear" && highway === "slow") {
+      title = "Prefer Turnpike Exit 4 if it saves time.";
+      reason = "The local launch is clear, but I-295 is reported slow before Burlington. Compare Exit 4 in Maps.";
+    } else if (merge === "clear" && highway === "blocked") {
+      title = "Use the verified open contingency route.";
+      reason = "I-295 is reported blocked before Burlington. Recheck Exit 4, Exit 3, or the Evesham connection in Maps.";
+    } else if (merge === "clear" && highway === "clear") {
+      title = "Take RT 42 / Route 55 toward Exit 5.";
+      reason = "The local launch and I-295 approach are reported clear. Exit 5 is the preferred toll-cost tradeoff.";
+    } else if (merge === "slow" && local === "clear") {
+      title = "Compare Evesham against the RT 42 queue.";
+      reason = "RT 42 is slow, while the bypass is clear. Use the live route-time comparison before committing.";
+    }
+    setText("#decision-title", title);
+    setText("#decision-reason", reason);
+    setText("#observation-age", `Last observation update: ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Conditions are not camera-analyzed and expire after 5 minutes.`);
+  }
+
+  function renderManualRows() {
+    const root = $("#manual-routes");
+    if (!root) return;
+    root.innerHTML = routeDefinitions.map((route) => `<div class="route-row"><label for="time-${route.id}">${route.name}</label><input id="time-${route.id}" type="number" min="1" max="600" inputmode="numeric" placeholder="min" aria-label="Current time for ${route.name}"><a href="${route.maps}" target="_blank" rel="noopener noreferrer">Open Maps ↗</a></div>`).join("");
+    $$("#manual-routes input").forEach((input) => input.addEventListener("input", renderManualRecommendation));
+  }
+
+  function renderManualRecommendation() {
+    const values = routeDefinitions.map((route) => ({ route, minutes: Number($("#time-" + route.id)?.value) })).filter((item) => Number.isFinite(item.minutes) && item.minutes > 0);
+    if (!values.length) return;
+    const bestMinutes = Math.min(...values.map((item) => item.minutes));
+    const preference = Number($("#toll-preference")?.value || 0);
+    const primary = values.find((item) => item.route.id === "primary");
+    const best = primary && preference > 0 && primary.minutes <= bestMinutes + preference ? primary : values.find((item) => item.minutes === bestMinutes);
+    setText("#decision-title", `Enter Maps times: take ${best.route.short}.`);
+    setText("#decision-reason", `${best.minutes} minutes entered; fastest entered time is ${bestMinutes} minutes. ${best.route.id === "primary" && preference > 0 ? "Exit 5 is within your selected preference window." : "This recommendation uses only the times you entered."}`);
+    setText("#observation-age", `Manual route comparison updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}. Recheck Maps before leaving.`);
+  }
+
+  async function geocode(query, key) {
+    const url = new URL("https://api.tomtom.com/search/2/geocode/" + encodeURIComponent(query) + ".json");
+    url.searchParams.set("key", key);
+    url.searchParams.set("limit", "1");
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Geocoding failed (${response.status})`);
+    const json = await response.json();
+    const position = json.results?.[0]?.position;
+    if (!position) throw new Error(`No location found for ${query}`);
+    return `${position.lat},${position.lon}`;
+  }
+
+  async function routeFor(origin, destination, waypoint, key) {
+    const points = [origin, await geocode(waypoint, key), destination].join(":");
+    const url = new URL(`https://api.tomtom.com/routing/1/calculateRoute/${points}/json`);
+    url.searchParams.set("key", key);
+    url.searchParams.set("traffic", "true");
+    url.searchParams.set("routeType", "fastest");
+    url.searchParams.set("computeTravelTimeFor", "all");
+    url.searchParams.set("sectionType", "traffic");
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Routing failed (${response.status})`);
+    const json = await response.json();
+    const summary = json.routes?.[0]?.summary;
+    if (!summary) throw new Error("No route returned");
+    return { summary, route: json.routes[0] };
+  }
+
+  function renderTrafficResults(results) {
+    const root = $("#traffic-results");
+    if (!root) return;
+    root.innerHTML = results.map((item, index) => `<article class="traffic-result"><h3>${index === 0 ? "Recommended now · " : "Alternative · "}${item.route.name}</h3><p><strong>${formatMinutes(item.summary.travelTimeInSeconds)}</strong> estimated with traffic · ${formatMinutes(item.summary.trafficDelayInSeconds)} delay · ${Math.round(item.summary.lengthInMeters / 1609.34 * 10) / 10} mi</p><ol><li>Start with the ${item.route.short} branch.</li><li>Review the highlighted route in Maps before leaving.</li><li>Recheck if the merge or incident status changes.</li></ol><a href="${item.route.maps}" target="_blank" rel="noopener noreferrer">Open this route in Google Maps ↗</a></article>`).join("");
+  }
+
+  async function calculateTraffic() {
+    if (!trafficKey) throw new Error("Enter a TomTom key first.");
+    status("Geocoding the commute and requesting traffic-adjusted routes…");
+    const [origin, destination] = await Promise.all([geocode("4 Tulip Ct, Deptford, NJ 08096", trafficKey), geocode("251 Docks Corner Road, Monroe, NJ 08831", trafficKey)]);
+    const results = await Promise.all(routeDefinitions.map(async (route) => ({ route, ...(await routeFor(origin, destination, route.waypoint, trafficKey)) })));
+    results.sort((a, b) => a.summary.travelTimeInSeconds - b.summary.travelTimeInSeconds);
+    renderTrafficResults(results);
+    const winner = results[0];
+    setText("#decision-title", `Traffic model recommends ${winner.route.short}.`);
+    setText("#decision-reason", `${formatMinutes(winner.summary.travelTimeInSeconds)} estimated with traffic, including ${formatMinutes(winner.summary.trafficDelayInSeconds)} of delay. Open the route and verify local camera conditions.`);
+    status(`Traffic comparison refreshed ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`);
+  }
+
+  async function connectTraffic() {
+    const keyInput = $("#traffic-key");
+    const key = keyInput?.value.trim();
+    if (!key) { status("Enter a TomTom key to connect automatic traffic comparison."); keyInput?.focus(); return; }
+    trafficKey = key;
+    $("#connect-traffic").disabled = true;
+    $("#refresh-traffic").disabled = false;
+    $("#disconnect-traffic").disabled = false;
+    try { await calculateTraffic(); if ($("#auto-traffic")?.checked) trafficTimer = setInterval(() => calculateTraffic().catch((error) => status(error.message)), TRAFFIC_REFRESH_MS); }
+    catch (error) { status(error.message); }
+    finally { $("#connect-traffic").disabled = false; }
+  }
+
+  function disconnectTraffic() {
+    trafficKey = "";
+    if (trafficTimer) clearInterval(trafficTimer);
+    trafficTimer = null;
+    const input = $("#traffic-key");
+    if (input) input.value = "";
+    $("#connect-traffic").disabled = false;
+    $("#refresh-traffic").disabled = true;
+    $("#disconnect-traffic").disabled = true;
+    $("#traffic-results").innerHTML = "";
+    status("Automatic traffic comparison disconnected; key forgotten.");
+  }
+
+  function setupMap() {
+    const frame = $("#commute-map");
+    if (frame) frame.title = "Normal OpenStreetMap view of the Deptford to Monroe commute area";
+  }
+
+  function setup() {
+    setupMap();
+    renderManualRows();
+    refreshDecision();
+    ["#merge-condition", "#local-condition", "#highway-condition", "#toll-preference"].forEach((selector) => $(selector)?.addEventListener("change", () => { refreshDecision(); renderManualRecommendation(); }));
+    $("#clear-times")?.addEventListener("click", () => { $$("#manual-routes input").forEach((input) => { input.value = ""; }); $("#traffic-results").innerHTML = ""; refreshDecision(); status("Manual observations and route times cleared."); });
+    $("#connect-traffic")?.addEventListener("click", connectTraffic);
+    $("#refresh-traffic")?.addEventListener("click", () => calculateTraffic().catch((error) => status(error.message)));
+    $("#disconnect-traffic")?.addEventListener("click", disconnectTraffic);
+    const observer = new IntersectionObserver((entries) => entries.forEach((entry) => entry.isIntersecting && mountStream(entry.target)), { rootMargin: "300px" });
+    $$("video[data-stream]").forEach((video) => observer.observe(video));
+    $("#refresh")?.addEventListener("click", refreshStreams);
+    setInterval(refreshStreams, REFRESH_MS);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refreshStreams(); });
+    refreshStreams();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", setup, { once: true });
+  else setup();
+})();
+
   </script>
 </body>
 </html>
+
