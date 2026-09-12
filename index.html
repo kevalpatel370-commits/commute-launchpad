@@ -332,6 +332,41 @@
     h1 { font-size:clamp(1.65rem,3vw,2.4rem); }
     @media(max-width:680px) { .advisor { padding:16px; }.route-row { flex-wrap:wrap; }.route-row label { flex-basis:65%; } }
 
+
+    .viewport video { width:100%;height:100%;object-fit:contain;background:#08101d; }
+    .feed-message { pointer-events:none; }
+    .live-camera[data-state="idle"] .feed-message { display:flex; }
+    .unavailable { padding:20px;background:var(--deep);font-size:.85rem;color:var(--muted); }
+    .unavailable .badge { color:var(--amber); }
+    .small-button,.advisor button { display:inline-block;min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:#193653;color:var(--text);cursor:pointer;text-decoration:none;font:inherit; }
+    .small-button { margin-top:12px; }
+    .advisor { padding:24px;border:1px solid #93c5fd66;border-radius:18px;background:linear-gradient(110deg,#162d47,#111c2e); }
+    .advisor h2 { margin-bottom:6px; }
+    .advisor p { color:var(--muted); }
+    .advisor label { display:block;font-size:.85rem;margin:12px 0 5px; }
+    .advisor select,.advisor input { font:inherit;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:11px;width:100%;min-height:44px; }
+    .advisor input[type="checkbox"] { width:auto;min-height:auto; }
+    .advisor details { border-top:1px solid var(--line);padding-top:16px;margin-top:18px; }
+    .advisor summary { cursor:pointer;padding:8px 0;min-height:44px; }
+    .decision { padding:18px;margin-top:18px;border:1px solid #6ee7b755;border-radius:12px;background:#6ee7b708; }
+    .decision strong { display:block;font-size:1.12rem;color:var(--green); }
+    .advisor .decision p { margin-top:6px; }
+    .advisor .fields { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:12px; }
+    .route-row { display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line); }
+    .route-row label { margin:0;flex:1; }
+    .route-row input { max-width:100px; }
+    .route-row a { font-size:.8rem; }
+    .traffic-result { padding:16px;margin-top:12px;background:var(--deep);border:1px solid var(--line);border-radius:12px; }
+    .traffic-result:first-child { border-color:var(--green); }
+    .traffic-result h3 { color:var(--green); }
+    .traffic-result ol { padding-left:20px; }
+    .route-map { width:100%;height:220px;background:#0b1120;border:1px solid var(--line);border-radius:8px;margin-top:12px; }
+    .advisor .actions { display:flex;gap:10px;flex-wrap:wrap;margin-top:12px; }
+    button:disabled { opacity:.5;cursor:wait; }
+    .hero { padding-block:8px 16px; }
+    h1 { font-size:clamp(1.65rem,3vw,2.4rem); }
+    @media(max-width:680px) { .advisor { padding:16px; }.route-row { flex-wrap:wrap; }.route-row label { flex-basis:65%; } }
+
 </style>
 </head>
 <body>
@@ -382,6 +417,42 @@
     </noscript>
 
     <main>
+<section class="advisor map-panel" id="map-view" aria-labelledby="map-title">
+  <div class="section-heading"><span class="phase-number" aria-hidden="true">⌖</span><div><h2 id="map-title">Normal map view</h2><p>See the full commute area first, then open a route in Google Maps for turn-by-turn traffic guidance.</p></div></div>
+  <iframe id="commute-map" class="route-map" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=-75.30%2C39.72%2C-74.30%2C40.48&amp;layer=mapnik&amp;marker=39.827%2C-75.096" title="Normal OpenStreetMap view of the Deptford to Monroe commute area"></iframe>
+  <p class="note"><a href="https://www.openstreetmap.org/?mlat=39.827&amp;mlon=-75.096#map=10/40.08/-74.80" target="_blank" rel="noopener noreferrer">Open the larger normal map ↗</a> · <a href="https://www.google.com/maps/dir/?api=1&amp;origin=4+Tulip+Ct%2C+Deptford%2C+NJ+08096&amp;destination=251+Docks+Corner+Road%2C+Monroe%2C+NJ+08831&amp;travelmode=driving" target="_blank" rel="noopener noreferrer">Open the full commute in Google Maps ↗</a></p>
+</section>
+
+<section class="advisor" id="advisor" aria-labelledby="advisor-title">
+  <p class="eyebrow">Before leaving / Decisions with evidence</p>
+  <h2 id="advisor-title">Which route should I take?</h2>
+  <p>Start with the local merge. Unknown conditions never count as clear roads.</p>
+  <div class="fields">
+    <div><label for="merge-condition">RT 42 shared merge at Leaf / Creek</label><select id="merge-condition"><option value="unknown">Not checked</option><option value="clear">Moving freely</option><option value="slow">Slow, but moving</option><option value="blocked">Gridlocked / closed</option></select></div>
+    <div><label for="local-condition">Evesham + connecting roads to Woodcrest</label><select id="local-condition"><option value="unknown">Not checked</option><option value="clear">Clear / accessible</option><option value="slow">Slow</option><option value="blocked">Blocked / closed</option></select></div>
+    <div><label for="highway-condition">I-295 North before Burlington</label><select id="highway-condition"><option value="unknown">Not checked</option><option value="clear">Moving freely</option><option value="slow">Slow before Exit 5 approach</option><option value="blocked">Blocked before Exit 5 approach</option></select></div>
+  </div>
+  <div class="decision" role="status" aria-live="polite"><strong id="decision-title">Check the local merge before choosing.</strong><p id="decision-reason">No traffic observations or route times have been entered.</p></div>
+  <p class="note" id="observation-age">These are your observations, not automatic camera analysis. They expire after 5 minutes.</p>
+  <details><summary>Compare current Google Maps times · no API needed</summary>
+    <p>Open each candidate and enter its current full-trip travel time in minutes. All comparisons start at home and finish at the office. Blank times are excluded.</p>
+    <div id="manual-routes"></div>
+    <label for="toll-preference">Route preference</label><select id="toll-preference"><option value="0">Fastest of the routes entered</option><option value="5">Prefer Exit 5 when within 5 minutes of fastest</option></select>
+    <div class="actions"><button id="clear-times" type="button">Clear observations &amp; times</button></div>
+    <p class="note">An Exit 5 preference is a time tradeoff, not a calculated toll price. Check route differences in Maps.</p>
+  </details>
+  <details id="traffic-setup"><summary>Connect automatic traffic-based recommendations</summary>
+    <p>Requires your own TomTom key with Search and Routing access. The key stays in this page’s memory and is never saved to GitHub. Your origin and destination are sent to TomTom only when you connect.</p>
+    <p class="note"><a href="https://developer.tomtom.com/" target="_blank" rel="noopener noreferrer">Get a TomTom developer key ↗</a>. Check your account’s allowance; no subscription is purchased here. Restrict the key to this website and the required APIs in your provider account.</p>
+    <label for="traffic-key">TomTom API key · this session only</label><input id="traffic-key" type="password" autocomplete="off" spellcheck="false" placeholder="Enter privately here, not in chat">
+    <label><input id="auto-traffic" type="checkbox" checked> Refresh route estimates every 2 minutes while this page is visible</label>
+    <div class="actions"><button id="connect-traffic" type="button">Send commute to TomTom &amp; compare</button><button id="refresh-traffic" type="button" disabled>Refresh traffic routes</button><button id="disconnect-traffic" type="button" disabled>Disconnect &amp; forget key</button></div>
+    <p class="note">Automatic mode ranks TomTom’s returned alternatives by traffic-adjusted travel time via the Exit 8A vicinity. It may not return every local/Turnpike combination. The manual condition and Exit 5 preference controls above do not modify these provider routes.</p>
+  </details>
+  <p id="traffic-status" class="note" role="status" aria-live="polite">Automatic traffic comparison is not connected.</p>
+  <div id="traffic-results"></div>
+</section>
+
 <section class="advisor map-panel" id="map-view" aria-labelledby="map-title">
   <div class="section-heading"><span class="phase-number" aria-hidden="true">⌖</span><div><h2 id="map-title">Normal map view</h2><p>See the full commute area first, then open a route in Google Maps for turn-by-turn traffic guidance.</p></div></div>
   <iframe id="commute-map" class="route-map" loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox=-75.30%2C39.72%2C-74.30%2C40.48&amp;layer=mapnik&amp;marker=39.827%2C-75.096" title="Normal OpenStreetMap view of the Deptford to Monroe commute area"></iframe>
@@ -578,6 +649,8 @@
 
   <!-- HLS.js, Apache-2.0: https://github.com/video-dev/hls.js -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.light.min.js" integrity="sha384-6zVopFZ6MnadnshQ07Vs8phFH+j+4/Ug+8qEZUIrwOiEv3+rW6ndNweevq1hUH93" crossorigin="anonymous"></script>
+  <!-- HLS.js, Apache-2.0: https://github.com/video-dev/hls.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js" crossorigin="anonymous"></script>
   <script>
 (() => {
   "use strict";
