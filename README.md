@@ -2,18 +2,16 @@
 
 [Open the dashboard](https://kevalpatel370-commits.github.io/commute-launchpad/)
 
-A responsive, single-file morning commute dashboard from Deptford to Monroe, NJ. Published using GitHub Pages from the root of the main branch.
+A responsive, single-file morning commute dashboard from Deptford to Monroe, NJ.
 
-## Camera setup
+## Live feeds
 
-All 11 camera slots initially display labeled placeholders, not live traffic. Edit each image's `data-src` in `index.html` to use a verified HTTPS static camera image URL. Update its heading and alt text to match the verified feed. A camera web page is not a direct image URL.
+The Turnpike cards use official NJTA HLS camera streams for verified locations including Interchange 3, Interchange 4, north of Interchange 5, north of Interchange 8, and Interchange 8A. The dashboard lazily starts streams when they are near the viewport and refreshes stream URLs every 30 seconds. Local RT 42, Route 55, Evesham, and I-295 camera cards link to the official 511NJ viewer because its player requires the site’s authenticated session and does not expose embeddable public image URLs.
 
-The dashboard requests new images every 30 seconds, on manual refresh, and when returning to the page. Browsers can suspend background timers. Image download times do not verify when the camera captured an image; source servers may also cache snapshots.
+## Route prioritization
 
-## Route links
+The dashboard includes a normal OpenStreetMap view, Google Maps links for each branch, transparent manual comparison of current Maps times, and an optional TomTom traffic-routing connection. Enter a TomTom key in the page only when you want automatic traffic comparison; it is held in memory for that session and sent with the commute locations only after you click Connect. The advisor ranks traffic-adjusted route estimates and explains the recommendation. Without a provider key, it uses your selected merge/highway conditions and any Maps times you enter; it never pretends that an unavailable feed is clear.
 
-Three Google Maps buttons open the primary Exit 5 route, fallback Exit 4 route, and route starting at Woodcrest Station. Review the calculated path: waypoints do not force every road or guarantee current ramp access. Route 55 joins Route 42, and the Evesham bypass requires connecting local roads. The requested MM 71.0 slot is an approach view; NJTA identifies its Exit 8A camera at MM 73.7.
+## Updating
 
-## Updating the website
-
-Edit and commit `index.html` on `main`. GitHub Pages automatically republishes it. No build tools, paid hosting, or API keys are required. This repository and website are public, including the commute addresses in the dashboard.
+Edit and commit `index.html` on `main`. GitHub Pages automatically republishes it. No provider key is stored in this repository. Review current camera directions, incidents, closures, tolls, and the calculated route before leaving.
